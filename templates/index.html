@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResearchMate AI</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e6e8eb;
+            --primary: #4a7dfc;
+            --primary-hover: #3b66d6;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --success-bg: #e6f4ea;
+            --success-text: #1e7e34;
+            --warning-bg: #fff4e5;
+            --warning-border: #ffd9a0;
+            --warning-text: #7a4a00;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-main); }
+        
+        /* Layout */
+        .sidebar { width: 280px; background: var(--card-bg); border-right: 1px solid var(--border-color); padding: 1.5rem; display: flex; flex-direction: column; overflow-y: auto; }
+        .main-content { flex: 1; padding: 2rem; overflow-y: auto; max-width: 1200px; margin: 0 auto; width: 100%; }
+        
+        /* Typography */
+        h1, h2, h3 { margin-bottom: 0.5rem; }
+        .rm-section-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .rm-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.2rem; }
+        
+        /* Sidebar Elements */
+        .brand { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .sidebar-caption { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+        .progress-bar { width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; margin: 0.5rem 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); transition: width 0.3s ease; }
+        .nav-btn { display: block; width: 100%; text-align: left; padding: 0.6rem 1rem; border: none; background: transparent; cursor: pointer; border-radius: 6px; font-size: 0.9rem; margin-bottom: 0.2rem; transition: background 0.2s; }
+        .nav-btn:hover { background: #f1f5f9; }
+        .nav-btn.active { background: #eff6ff; color: var(--primary); font-weight: 600; }
+        
+        /* UI Components */
+        .rm-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.1rem 1.3rem; margin-bottom: 0.9rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .rm-guidance { background: #f4f7fb; border-left: 3px solid var(--primary); border-radius: 6px; padding: 0.7rem 1rem; font-size: 0.88rem; color: #333; margin-top: 1rem; margin-bottom: 1rem;}
+        .rm-warning { background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.85rem; color: var(--warning-text); margin-bottom: 1rem; }
+        .rm-score { text-align: center; padding: 0.8rem; border-radius: 10px; background: #f8f9fb; border: 1px solid var(--border-color); flex: 1;}
+        .rm-score-value { font-size: 1.6rem; font-weight: 700; color: #1f3a93; }
+        .rm-score-label { font-size: 0.8rem; color: var(--text-muted); }
+        
+        /* Forms & Inputs */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .form-group { display: flex; flex-direction: column; margin-bottom: 1rem;}
+        label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; }
+        input, select, textarea { padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; outline: none; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(74,125,252,0.2); }
+        textarea { resize: vertical; min-height: 100px; }
+        
+        button.btn-primary { background: var(--primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+        button.btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+        button.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        button.btn-outline { background: white; color: var(--text-main); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+        button.btn-outline:hover { background: #f9fafb; }
+        
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; }
+        .tab { padding: 0.5rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); }
+        .tab.active { border-bottom-color: var(--primary); color: var(--primary); font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Utilities */
+        .hidden { display: none !important; }
+        .flex { display: flex; gap: 1rem; }
+        hr { border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0; }
+        .loader { display: inline-block; width: 1rem; height: 1rem; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; margin-right: 0.5rem; vertical-align: middle;}
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        th, td { border: 1px solid var(--border-color); padding: 0.5rem; text-align: left; font-size: 0.9rem; }
+        th { background: #f8fafc; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="brand">🔬 ResearchMate AI</div>
+    <div class="sidebar-caption">Step-by-step research paper assistant</div>
+    
+    <div class="progress-bar">
+        <div class="progress-fill" id="sidebar-progress" style="width: 0%"></div>
+    </div>
+    <div class="sidebar-caption" id="sidebar-progress-text">0 / 11 sections complete</div>
+    <hr>
+    <div id="nav-container"></div>
+    <hr>
+    {% if not gemini_configured %}
+    <div class="rm-warning">⚠️ GEMINI_API_KEY not set. AI features are disabled.</div>
+    {% else %}
+    <div style="color:var(--success-text); font-size:0.85rem; font-weight:600;">✓ Gemini API connected</div>
+    {% endif %}
+</div>
+
+<div class="main-content" id="app-content">
+    </div>
+
+<script>
+    // --- State & Config ---
+    const SECTIONS = [
+        "Project Setup", "Research Topic", "Reference Papers", "Research Gap",
+        "Literature Review", "Methodology", "Paper Builder", "Authors",
+        "Figures & Tables", "Citations", "Export"
+    ];
+    let currentPage = "Project Setup";
+    
+    // Manage Session ID
+    let sid = localStorage.getItem("rm_session_id");
+    if (!sid) {
+        sid = crypto.randomUUID();
+        localStorage.setItem("rm_session_id", sid);
+    }
+    
+    let appState = null;
+
+    // --- API Service ---
+    async function apiFetch(endpoint, options = {}) {
+        const headers = { "X-Session-ID": sid, ...options.headers };
+        if (options.json) {
+            options.body = JSON.stringify(options.json);
+            headers["Content-Type"] = "application/json";
+        }
+        const res = await fetch(endpoint, { ...options, headers });
+        if (!res.ok) throw new Error(await res.text());
+        return options.blob ? res.blob() : res.json();
+    }
+
+    async function loadState() {
+        appState = await apiFetch("/api/state");
+        renderApp();
+    }
+
+    function checkSectionComplete(name) {
+        if (!appState) return false;
+        const p = appState;
+        switch(name) {
+            case "Project Setup": return !!(p.project.title && p.project.domain);
+            case "Research Topic": return p.topic.evaluation !== null;
+            case "Reference Papers": return p.papers.length > 0;
+            case "Research Gap": return p.research_gap !== null;
+            case "Literature Review": return p.lit_review.table !== null || p.lit_review.thematic !== null;
+            case "Methodology": return p.methodology.generated !== null;
+            case "Paper Builder": return Object.values(p.paper_sections).some(v => v);
+            case "Authors": return p.authors.length > 0;
+            case "Figures & Tables": return p.figures.length > 0 || (p.datasets_keys && p.datasets_keys.length > 0);
+            case "Citations": return p.citations.length > 0;
+            case "Export": return false;
+            default: return false;
+        }
+    }
+
+    // --- UI Renderers ---
+    function renderApp() {
+        renderSidebar();
+        const content = document.getElementById("app-content");
+        content.innerHTML = "";
+        
+        switch(currentPage) {
+            case "Project Setup": renderProjectSetup(content); break;
+            case "Research Topic": renderResearchTopic(content); break;
+            case "Reference Papers": renderReferencePapers(content); break;
+            case "Research Gap": renderResearchGap(content); break;
+            case "Literature Review": renderLiteratureReview(content); break;
+            case "Methodology": renderMethodology(content); break;
+            case "Paper Builder": renderPaperBuilder(content); break;
+            case "Authors": renderAuthors(content); break;
+            case "Figures & Tables": renderFiguresTables(content); break;
+            case "Citations": renderCitations(content); break;
+            case "Export": renderExport(content); break;
+        }
+    }
+
+    function renderSidebar() {
+        const container = document.getElementById("nav-container");
+        container.innerHTML = "";
+        let completed = 0;
+        
+        SECTIONS.forEach(s => {
+            const isDone = checkSectionComplete(s);
+            if (isDone) completed++;
+            const btn = document.createElement("button");
+            btn.className = `nav-btn ${currentPage === s ? 'active' : ''}`;
+            btn.innerHTML = `${isDone ? '✓' : '○'} ${s}`;
+            btn.onclick = () => { currentPage = s; renderApp(); };
+            container.appendChild(btn);
+        });
+        
+        document.getElementById("sidebar-progress").style.width = `${(completed/SECTIONS.length)*100}%`;
+        document.getElementById("sidebar-progress-text").innerText = `${completed} / ${SECTIONS.length} sections complete`;
+    }
+
+    function createGuidance(why, how) {
+        return `<div class="rm-guidance"><b>📘 Academic Guidance</b><br>
+        <b>Why this matters:</b> ${why}<br>
+        <b>How researchers typically write it:</b> ${how}</div>`;
+    }
+
+    // --- Page 1: Project Setup ---
+    function renderProjectSetup(el) {
+        const p = appState.project;
+        el.innerHTML = `
+            <div class="rm-section-title">Project Setup</div>
+            <div class="rm-subtitle">Define the foundation of your research paper.</div>
+            <div class="form-grid">
+                <div class="form-group"><label>Paper Title</label><input id="p_title" value="${p.title}"></div>
+                <div class="form-group">
+                    <label>Journal Selection</label>
+                    <select id="p_journal">
+                        ${["IEEE","Springer","ACM","Elsevier","Custom"].map(j => `<option ${p.journal===j?'selected':''}>${j}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group"><label>Research Domain</label><input id="p_domain" placeholder="e.g. Computer Science" value="${p.domain}"></div>
+                <div class="form-group"><label>Target Page Count</label><input type="number" id="p_pages" value="${p.page_count}"></div>
+                <div class="form-group"><label>Research Area</label><input id="p_area" value="${p.area}"></div>
+                <div class="form-group"><label>Abstract Word Limit</label><input type="number" id="p_abslimit" value="${p.abstract_limit}"></div>
+            </div>
+            <div class="form-group"><label>Keywords (comma separated)</label><input id="p_keywords" value="${p.keywords}"></div>
+            <button class="btn-primary" onclick="saveProjectSetup()">Save Setup</button>
+            <hr>
+            ${createGuidance("A well-scoped title and domain keeps the entire paper focused and helps reviewers quickly judge relevance.", "Researchers usually finalize the title last, but draft a working title early to guide scope decisions throughout the project.")}
+        `;
+    }
+    
+    async function saveProjectSetup() {
+        await apiFetch("/api/project", { method: "POST", json: {
+            title: document.getElementById("p_title").value,
+            domain: document.getElementById("p_domain").value,
+            area: document.getElementById("p_area").value,
+            journal: document.getElementById("p_journal").value,
+            page_count: parseInt(document.getElementById("p_pages").value),
+            abstract_limit: parseInt(document.getElementById("p_abslimit").value),
+            keywords: document.getElementById("p_keywords").value
+        }});
+        await loadState();
+    }
+
+    // --- Page 2: Research Topic ---
+    function renderResearchTopic(el) {
+        const t = appState.topic;
+        let html = `
+            <div class="rm-section-title">Research Topic</div>
+            <div class="rm-subtitle">Evaluate your topic idea before committing time to it.</div>
+            <div class="form-group">
+                <label>Topic Idea</label>
+                <textarea id="t_idea" placeholder="Describe your research idea in 2-3 sentences...">${t.idea}</textarea>
+            </div>
+            <button class="btn-primary" id="btn-eval-topic" onclick="evaluateTopic()">Evaluate Topic</button>
+        `;
+        
+        if (t.evaluation) {
+            const ev = t.evaluation;
+            html += `
+                <h3 style="margin-top:2rem">Evaluation Results</h3>
+                <div class="flex" style="flex-wrap:wrap">
+                    <div class="rm-score"><div class="rm-score-value">${ev.clarity}/10</div><div class="rm-score-label">Topic Clarity</div><div style="font-size:0.75rem; color:#666">${ev.clarity_note}</div></div>
+                    <div class="rm-score"><div class="rm-score-value">${ev.novelty}/10</div><div class="rm-score-label">Novelty Score</div><div style="font-size:0.75rem; color:#666">${ev.novelty_note}</div></div>
+                    <div class="rm-score"><div class="rm-score-value">${ev.feasibility}/10</div><div class="rm-score-label">Feasibility Score</div><div style="font-size:0.75rem; color:#666">${ev.feasibility_note}</div></div>
+                    <div class="rm-score"><div class="rm-score-value">${ev.dataset_availability}</div><div class="rm-score-label">Dataset Availability</div></div>
+                </div>
+                <h3 style="margin-top:1rem">Suggestions</h3>
+                <ul>${ev.suggestions.map(s => `<li style="margin-left:1.5rem;font-size:0.9rem">${s}</li>`).join('')}</ul>
+            `;
+        }
+        
+        html += createGuidance("Evaluating feasibility and novelty early prevents months of wasted effort.", "Advisors typically check three things first: is the gap real, is data available, and can it be completed.");
+        el.innerHTML = html;
+    }
+
+    async function evaluateTopic() {
+        const btn = document.getElementById("btn-eval-topic");
+        btn.innerHTML = `<span class="loader"></span> Evaluating...`;
+        btn.disabled = true;
+        await apiFetch("/api/topic/evaluate", { method: "POST", json: { idea: document.getElementById("t_idea").value }});
+        await loadState();
+    }
+
+    // --- Page 3: Reference Papers ---
+    function renderReferencePapers(el) {
+        const papers = appState.papers;
+        let html = `
+            <div class="rm-section-title">Reference Papers</div>
+            <div class="rm-subtitle">Upload PDFs to extract titles, authors, and abstracts.</div>
+            <div class="rm-card">
+                <input type="file" id="pdf_uploads" multiple accept="application/pdf">
+                <button class="btn-primary" onclick="uploadPDFs()" style="margin-top:1rem">Upload & Extract</button>
+            </div>
+            <hr>
+        `;
+        
+        if (papers.length === 0) {
+            html += `<div style="padding:1rem;background:#e5edff;border-radius:8px">No reference papers uploaded yet.</div>`;
+        } else {
+            papers.forEach((p, idx) => {
+                html += `
+                    <div class="rm-card">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+                            <b style="font-size:1.1rem">${p.title}</b>
+                            <button class="btn-outline" onclick="removePaper(${idx})">Remove</button>
+                        </div>
+                        <div style="font-size:0.9rem; margin: 0.5rem 0;"><b>Authors:</b> ${p.authors}</div>
+                        <div style="font-size:0.85rem; color:#444"><b>Abstract:</b> ${p.abstract}</div>
+                    </div>
+                `;
+            });
+        }
+        
+        html += createGuidance("Reference papers ground your literature review and research gap analysis.", "Most researchers collect 15-30 closely related papers before drafting a literature review.");
+        el.innerHTML = html;
+    }
+
+    async function uploadPDFs() {
+        const files = document.getElementById("pdf_uploads").files;
+        if (!files.length) return;
+        const fd = new FormData();
+        for(let i=0; i<files.length; i++) fd.append("files", files[i]);
+        
+        document.querySelector("button[onclick='uploadPDFs()']").innerHTML = `<span class="loader"></span> Processing...`;
+        await apiFetch("/api/papers/upload", { method: "POST", body: fd });
+        await loadState();
+    }
+    
+    async function removePaper(idx) {
+        await apiFetch(`/api/papers/${idx}`, { method: "DELETE" });
+        await loadState();
+    }
+
+    // --- Page 4: Research Gap ---
+    function renderResearchGap(el) {
+        let html = `
+            <div class="rm-section-title">Research Gap</div>
+            <div class="rm-subtitle">Identify trends, limitations, and gaps from your uploaded papers only.</div>
+        `;
+        if (appState.papers.length === 0) {
+            html += `<div class="rm-warning">Upload reference papers first.</div>`;
+            el.innerHTML = html; return;
+        }
+        
+        html += `<button class="btn-primary" id="btn-gap" onclick="analyzeGap()">Analyze Research Gap</button>`;
+        
+        const gap = appState.research_gap;
+        if (gap) {
+            html += `<div class="rm-warning" style="margin-top:1rem">⚠️ This analysis is based strictly on your uploaded papers.</div>`;
+            const keys = [
+                {k:"research_trends", l:"Research Trends"}, {k:"common_limitations", l:"Common Limitations"},
+                {k:"future_work", l:"Future Work"}, {k:"potential_gaps", l:"Potential Research Gaps"}
+            ];
+            keys.forEach(obj => {
+                html += `<h3>${obj.l}</h3><ul>`;
+                (gap[obj.k] || []).forEach(item => html += `<li style="margin-left:1.5rem;font-size:0.9rem">${item}</li>`);
+                if (!(gap[obj.k] || []).length) html += `<li style="color:#666">Insufficient information.</li>`;
+                html += `</ul><br>`;
+            });
+        }
+        html += createGuidance("A credible research gap must come from evidence in existing literature, not guesswork.", "Researchers cross-reference 'future work' sections across multiple papers.");
+        el.innerHTML = html;
+    }
+    
+    async function analyzeGap() {
+        document.getElementById("btn-gap").innerHTML = `<span class="loader"></span> Analyzing...`;
+        await apiFetch("/api/gap/analyze", { method: "POST" });
+        await loadState();
+    }
+
+    // --- Page 5: Literature Review ---
+    function renderLiteratureReview(el) {
+        if (appState.papers.length === 0) {
+            el.innerHTML = `<div class="rm-section-title">Literature Review</div><div class="rm-warning">Upload reference papers first.</div>`;
+            return;
+        }
+        
+        el.innerHTML = `
+            <div class="rm-section-title">Literature Review</div>
+            <div class="rm-subtitle">Author-wise, thematic, and comparative analysis.</div>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab(this, 'lit-auth')">Author-wise</div>
+                <div class="tab" onclick="switchTab(this, 'lit-them')">Thematic</div>
+                <div class="tab" onclick="switchTab(this, 'lit-comp')">Comparative</div>
+                <div class="tab" onclick="switchTab(this, 'lit-table')">Comparison Table</div>
+            </div>
+            
+            <div id="lit-auth" class="tab-content active">
+                <button class="btn-primary" onclick="genLit('author_wise', this)">Generate Author-wise Review</button>
+                <div style="margin-top:1rem; white-space:pre-wrap; font-size:0.95rem">${appState.lit_review.author_wise || ''}</div>
+            </div>
+            <div id="lit-them" class="tab-content">
+                <button class="btn-primary" onclick="genLit('thematic', this)">Generate Thematic Review</button>
+                <div style="margin-top:1rem; white-space:pre-wrap; font-size:0.95rem">${appState.lit_review.thematic || ''}</div>
+            </div>
+            <div id="lit-comp" class="tab-content">
+                <button class="btn-primary" onclick="genLit('comparative', this)">Generate Comparative Summary</button>
+                <div style="margin-top:1rem; white-space:pre-wrap; font-size:0.95rem">${appState.lit_review.comparative || ''}</div>
+            </div>
+            <div id="lit-table" class="tab-content">
+                <button class="btn-primary" onclick="genLit('table', this)">Generate Comparison Table</button>
+                <div class="table-wrap" style="margin-top:1rem" id="lit-table-container"></div>
+            </div>
+        `;
+        
+        if (appState.lit_review.table) {
+            let thtml = `<table><tr><th>Author</th><th>Method</th><th>Dataset</th><th>Findings</th><th>Limitations</th></tr>`;
+            appState.lit_review.table.forEach(r => {
+                thtml += `<tr><td>${r.author||''}</td><td>${r.method||''}</td><td>${r.dataset||''}</td><td>${r.findings||''}</td><td>${r.limitations||''}</td></tr>`;
+            });
+            thtml += `</table>`;
+            document.getElementById("lit-table-container").innerHTML = thtml;
+        }
+    }
+    
+    function switchTab(el, targetId) {
+        Array.from(el.parentElement.children).forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        Array.from(el.parentElement.nextElementSibling.parentElement.querySelectorAll('.tab-content')).forEach(c => c.classList.remove('active'));
+        document.getElementById(targetId).classList.add('active');
+    }
+    
+    async function genLit(type, btn) {
+        btn.innerHTML = `<span class="loader"></span> Generating...`;
+        await apiFetch("/api/litreview/generate", { method: "POST", json: { type } });
+        await loadState();
+    }
+
+    // --- Page 6: Methodology ---
+    function renderMethodology(el) {
+        const m = appState.methodology;
+        el.innerHTML = `
+            <div class="rm-section-title">Methodology</div>
+            <div class="rm-subtitle">Describe your research design — nothing here is fabricated.</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Research Type</label>
+                    <select id="m_type">${["Experimental", "Survey", "Case Study", "Machine Learning", "Hybrid"].map(t => `<option ${m.type===t?'selected':''}>${t}</option>`).join('')}</select>
+                </div>
+                <div class="form-group"><label>Tools Used</label><input id="m_tools" value="${m.tools}"></div>
+                <div class="form-group"><label>Dataset</label><input id="m_dataset" value="${m.dataset}"></div>
+                <div class="form-group"><label>Evaluation Metrics</label><input id="m_metrics" value="${m.metrics}"></div>
+                <div class="form-group"><label>Sample Size</label><input id="m_size" value="${m.sample_size}"></div>
+            </div>
+            <button class="btn-primary" id="btn-meth" onclick="genMethodology()">Generate Methodology</button>
+            ${m.generated ? `<h3 style="margin-top:2rem">Generated Methodology</h3><div style="white-space:pre-wrap; background:white; padding:1rem; border:1px solid #ddd; border-radius:8px">${m.generated}</div>` : ''}
+            ${createGuidance("Reviewers judge reproducibility primarily through the methodology section.", "Strong methodology sections state exactly what was done, with what data, and how it was measured.")}
+        `;
+    }
+    
+    async function genMethodology() {
+        document.getElementById("btn-meth").innerHTML = `<span class="loader"></span> Generating...`;
+        await apiFetch("/api/methodology", { method: "POST", json: {
+            type: document.getElementById("m_type").value,
+            dataset: document.getElementById("m_dataset").value,
+            sample_size: document.getElementById("m_size").value,
+            tools: document.getElementById("m_tools").value,
+            metrics: document.getElementById("m_metrics").value
+        }});
+        await loadState();
+    }
+
+    // --- Page 7: Paper Builder ---
+    function renderPaperBuilder(el) {
+        const p = appState.paper_sections;
+        const config = [
+            {k:"introduction", l:"Generate Introduction", d:"Introduces the problem, motivation, and contribution."},
+            {k:"literature_review", l:"Generate Literature Review", d:"Synthesizes prior work and leads into gap."},
+            {k:"methodology", l:"Generate Methodology", d:"Formal write-up of research design."},
+            {k:"results", l:"Generate Results", d:"Presents actual findings."},
+            {k:"discussion", l:"Generate Discussion", d:"Interprets results in context."},
+            {k:"conclusion", l:"Generate Conclusion", d:"Summarizes contribution."},
+            {k:"abstract", l:"Generate Abstract", d:"Condenses the full paper — generated last."}
+        ];
+        
+        let html = `
+            <div class="rm-section-title">Paper Builder</div>
+            <div class="rm-subtitle">Generate each section independently to minimize hallucination.</div>
+            <div class="form-group">
+                <label>Results Input (required before generating Results)</label>
+                <textarea id="results_input" placeholder="Paste your actual experimental results...">${appState.results_input || ''}</textarea>
+                <button class="btn-outline" style="width:fit-content; margin-top:0.5rem" onclick="saveResultsInput()">Save Results Data</button>
+            </div>
+            <hr>
+        `;
+        
+        config.forEach(c => {
+            const hasContent = !!p[c.k];
+            let disabled = false;
+            let warn = '';
+            if (c.k === 'abstract') {
+                const othersDone = config.filter(x=>x.k!=='abstract').every(x => !!p[x.k]);
+                disabled = !othersDone;
+                if(disabled) warn = '⚠️ Generate all other sections first.';
+            } else if (c.k === 'results') {
+                disabled = !(appState.results_input && appState.results_input.trim());
+                if(disabled) warn = '⚠️ Provide actual results above first.';
+            }
+            
+            html += `
+                <div class="rm-card" style="display:flex; flex-direction:column; gap:0.5rem">
+                    <div><b>${c.l.replace("Generate ", "")}</b> <span style="color:#666;font-size:0.85rem">- ${c.d}</span></div>
+                    ${warn ? `<div style="font-size:0.8rem; color:#a35a00">${warn}</div>` : ''}
+                    <div class="flex" style="align-items:center">
+                        <button class="btn-primary" ${disabled?'disabled':''} onclick="genSection('${c.k}', this)">${c.l}</button>
+                    </div>
+                    ${hasContent ? `
+                        <details style="margin-top:1rem; padding:1rem; background:#f9fafb; border:1px solid #ddd; border-radius:6px">
+                            <summary style="cursor:pointer; font-weight:600; margin-bottom:0.5rem">View / Edit Content</summary>
+                            <textarea id="sec_${c.k}" style="width:100%; height:200px; margin-bottom:0.5rem">${p[c.k]}</textarea>
+                            <button class="btn-outline" onclick="saveSection('${c.k}')">Save Edits</button>
+                        </details>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        el.innerHTML = html;
+    }
+    
+    async function saveResultsInput() {
+        await apiFetch("/api/paper_builder/results_input", { method: "POST", json: { results_input: document.getElementById("results_input").value } });
+        await loadState();
+    }
+    
+    async function genSection(key, btn) {
+        btn.innerHTML = `<span class="loader"></span> Generating...`;
+        await apiFetch("/api/paper_builder/generate", { method: "POST", json: { section: key } });
+        await loadState();
+    }
+    
+    async function saveSection(key) {
+        await apiFetch("/api/paper_builder/update", { method: "POST", json: { section: key, content: document.getElementById("sec_"+key).value } });
+        await loadState();
+    }
+
+    // --- Page 8: Authors ---
+    function renderAuthors(el) {
+        let html = `
+            <div class="rm-section-title">Authors</div>
+            <div class="rm-subtitle">Add author details for the final manuscript.</div>
+            <div class="rm-card">
+                <div class="form-grid">
+                    <div class="form-group"><label>Name</label><input id="a_name"></div>
+                    <div class="form-group"><label>Institute</label><input id="a_inst"></div>
+                    <div class="form-group"><label>Designation</label><input id="a_des"></div>
+                    <div class="form-group"><label>Email</label><input id="a_email"></div>
+                    <div class="form-group"><label>Department</label><input id="a_dep"></div>
+                    <div class="form-group"><label>ORCID</label><input id="a_orcid"></div>
+                </div>
+                <button class="btn-primary" onclick="addAuthor()">Add Author</button>
+            </div>
+            <h3>Author Preview</h3>
+        `;
+        
+        if (appState.authors.length === 0) {
+            html += `<div style="padding:1rem;background:#e5edff;border-radius:8px">No authors added yet.</div>`;
+        } else {
+            appState.authors.forEach((a, idx) => {
+                html += `
+                    <div class="rm-card flex" style="justify-content:space-between; align-items:center">
+                        <div>
+                            <b>${a.name}</b> — ${a.designation}<br>
+                            ${a.department}, ${a.institute}<br>
+                            ✉️ ${a.email} ${a.orcid ? `| ORCID: ${a.orcid}` : ''}
+                        </div>
+                        <button class="btn-outline" onclick="removeAuthor(${idx})">Remove</button>
+                    </div>
+                `;
+            });
+        }
+        el.innerHTML = html;
+    }
+    
+    async function addAuthor() {
+        const name = document.getElementById("a_name").value;
+        if(!name) return alert("Name is required");
+        await apiFetch("/api/authors", { method: "POST", json: {
+            name, institute: document.getElementById("a_inst").value,
+            designation: document.getElementById("a_des").value, email: document.getElementById("a_email").value,
+            department: document.getElementById("a_dep").value, orcid: document.getElementById("a_orcid").value
+        }});
+        await loadState();
+    }
+    async function removeAuthor(idx) {
+        await apiFetch(`/api/authors/${idx}`, { method: "DELETE" });
+        await loadState();
+    }
+
+    // --- Page 9: Figures & Tables ---
+    function renderFiguresTables(el) {
+        let html = `
+            <div class="rm-section-title">Figures & Tables</div>
+            <div class="rm-subtitle">Upload data to generate charts, or upload images directly.</div>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab(this, 'fig-chart')">Charts from CSV</div>
+                <div class="tab" onclick="switchTab(this, 'fig-img')">Image Uploads</div>
+            </div>
+            
+            <div id="fig-chart" class="tab-content active">
+                <div class="rm-card">
+                    <label>Upload CSV Data</label><br>
+                    <input type="file" id="csv_file" accept=".csv" style="margin-top:0.5rem">
+                    <button class="btn-outline" onclick="uploadCSV()" style="margin-left:1rem">Upload CSV</button>
+                </div>
+        `;
+        
+        if (appState.datasets_keys && appState.datasets_keys.length > 0) {
+            html += `
+                <div class="rm-card" id="chart_builder">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Select Dataset</label>
+                            <select id="c_ds">${appState.datasets_keys.map(k => `<option>${k}</option>`).join('')}</select>
+                        </div>
+                        <div class="form-group">
+                            <label>Chart Type</label>
+                            <select id="c_type"><option>Bar Chart</option><option>Pie Chart</option><option>Line Chart</option><option>Scatter Plot</option></select>
+                        </div>
+                        <div class="form-group"><label>X / Category Column</label><input id="c_x" placeholder="Column name"></div>
+                        <div class="form-group"><label>Y / Value Column</label><input id="c_y" placeholder="Column name"></div>
+                    </div>
+                    <button class="btn-primary" onclick="generateChart()">Generate Chart</button>
+                </div>
+            `;
+        }
+        
+        html += `</div>
+            <div id="fig-img" class="tab-content">
+                <div class="rm-card">
+                    <input type="file" id="img_uploads" multiple accept="image/png, image/jpeg">
+                    <button class="btn-primary" onclick="uploadImages()" style="margin-top:1rem">Upload Images</button>
+                </div>
+            </div>
+            <hr><h3>Gallery</h3><div style="display:flex; flex-wrap:wrap; gap:1rem; margin-top:1rem">
+        `;
+        
+        appState.figures.forEach(f => {
+            if (f.image_b64) {
+                html += `<div class="rm-card" style="width:300px; padding:0.5rem">
+                    <img src="data:image/png;base64,${f.image_b64}" style="width:100%; border-radius:6px">
+                    <div style="font-size:0.8rem; text-align:center; margin-top:0.5rem">${f.type === 'image' ? f.meta.name : f.type}</div>
+                </div>`;
+            }
+        });
+        
+        html += `</div>`;
+        el.innerHTML = html;
+    }
+    
+    async function uploadCSV() {
+        const file = document.getElementById("csv_file").files[0];
+        if(!file) return;
+        const fd = new FormData(); fd.append("file", file);
+        await apiFetch("/api/figures/csv", { method: "POST", body: fd });
+        await loadState();
+        alert("CSV Uploaded! Please type exact column names to plot.");
+    }
+    
+    async function generateChart() {
+        await apiFetch("/api/figures/chart", { method: "POST", json: {
+            dataset: document.getElementById("c_ds").value,
+            type: document.getElementById("c_type").value,
+            x: document.getElementById("c_x").value,
+            y: document.getElementById("c_y").value
+        }});
+        await loadState();
+    }
+    
+    async function uploadImages() {
+        const files = document.getElementById("img_uploads").files;
+        if(!files.length) return;
+        const fd = new FormData();
+        for(let i=0; i<files.length; i++) fd.append("files", files[i]);
+        await apiFetch("/api/figures/image", { method: "POST", body: fd });
+        await loadState();
+    }
+
+    // --- Page 10: Citations ---
+    function renderCitations(el) {
+        let html = `
+            <div class="rm-section-title">Citations</div>
+            <div class="rm-subtitle">Manage references — no fabricated citations are generated.</div>
+            <div class="rm-card form-grid" style="grid-template-columns: 1fr">
+                <div class="form-grid">
+                    <div class="form-group"><label>Authors</label><input id="ci_auth"></div>
+                    <div class="form-group"><label>Title / URL / DOI</label><input id="ci_title"></div>
+                    <div class="form-group"><label>Year</label><input id="ci_year"></div>
+                    <div class="form-group"><label>Source (Journal/Conf)</label><input id="ci_src"></div>
+                </div>
+                <button class="btn-primary" onclick="addCitation()">Add Citation</button>
+            </div>
+            <hr><h3>All Citations</h3>
+        `;
+        if(appState.citations.length === 0) {
+            html += `<div style="padding:1rem;background:#e5edff;border-radius:8px">No citations added yet.</div>`;
+        } else {
+            appState.citations.forEach((c, idx) => {
+                html += `<div class="rm-card flex" style="justify-content:space-between; align-items:center">
+                    <div><b>[${idx+1}]</b> ${c.authors}. <i>${c.title}</i>. ${c.source}, ${c.year}.</div>
+                    <button class="btn-outline" onclick="removeCitation(${idx})">Remove</button>
+                </div>`;
+            });
+        }
+        el.innerHTML = html;
+    }
+    
+    async function addCitation() {
+        await apiFetch("/api/citations", { method: "POST", json: {
+            authors: document.getElementById("ci_auth").value || 'Unknown',
+            title: document.getElementById("ci_title").value || 'Untitled',
+            year: document.getElementById("ci_year").value || 'n.d.',
+            source: document.getElementById("ci_src").value || 'Web Source'
+        }});
+        await loadState();
+    }
+    async function removeCitation(idx) {
+        await apiFetch(`/api/citations/${idx}`, { method: "DELETE" });
+        await loadState();
+    }
+
+    // --- Page 11: Export ---
+    function renderExport(el) {
+        const completed = SECTIONS.slice(0,-1).filter(s => checkSectionComplete(s)).length;
+        const total = SECTIONS.length - 1;
+        
+        let html = `
+            <div class="rm-section-title">Export</div>
+            <div class="rm-subtitle">Download your paper as a ready-to-compile LaTeX package.</div>
+            <div class="progress-bar" style="height:10px; margin-bottom:0.5rem"><div class="progress-fill" style="width:${(completed/total)*100}%"></div></div>
+            <div style="font-size:0.85rem; color:#666; margin-bottom:1.5rem">${completed} of ${total} sections complete</div>
+        `;
+        
+        if (completed < total) {
+            html += `<div class="rm-warning">⚠️ Some sections are incomplete. Export will still work but paper may be missing parts.</div>`;
+        }
+        
+        html += `
+            <button class="btn-primary" id="btn-export" style="font-size:1.1rem; padding:0.8rem 1.5rem" onclick="generateExport()">Generate Export Package</button>
+            <div id="export-actions" style="margin-top:1rem"></div>
+        `;
+        
+        html += createGuidance("A clean LaTeX export saves hours of manual formatting for journal templates.", "Most researchers still hand-check the compiled PDF before submission.");
+        el.innerHTML = html;
+    }
+
+    async function generateExport() {
+        const btn = document.getElementById("btn-export");
+        btn.innerHTML = `<span class="loader"></span> Generating Package...`;
+        const res = await apiFetch("/api/export/generate", { method: "POST" });
+        
+        btn.innerHTML = `Regenerate Package`;
+        document.getElementById("export-actions").innerHTML = `
+            <a href="/api/export/download?sid=${sid}" target="_blank">
+                <button class="btn-primary" style="background:#1e7e34; font-size:1.1rem; padding:0.8rem 1.5rem">📥 Download ZIP Package</button>
+            </a>
+            <details style="margin-top:2rem; background:white; padding:1rem; border:1px solid #ddd; border-radius:8px">
+                <summary style="cursor:pointer; font-weight:600; margin-bottom:1rem">Preview paper.tex</summary>
+                <pre style="background:#1e1e1e; color:#d4d4d4; padding:1rem; border-radius:6px; overflow-x:auto; font-size:0.85rem">${res.latex_preview.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+            </details>
+        `;
+    }
+
+    // --- Init ---
+    window.onload = loadState;
+</script>
+</body>
+</html>
